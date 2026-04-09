@@ -222,27 +222,47 @@
         if (e.key === 'Enter') sendMessage();
     }
 
-    function sendMessage() {
-        const input = document.getElementById('user-input');
-        const text = input.value.trim();
-        if (!text) return;
+	async function sendMessage() {
+		const input = document.getElementById('user-input');
+		const text = input.value.trim();
+		if (!text) return;
 
-        appendMessage(text, 'user');
-        input.value = '';
+		// 1. Show user message
+		appendMessage(text, 'user');
+		input.value = '';
 
-        // Mock AI Response logic
-        setTimeout(() => {
-            const responses = [
-                "That's interesting! Tell me more.",
-                "I was just thinking the same thing.",
-                "Haha, you're pretty charming for a human.",
-                "I've been waiting for someone to say that!",
-                "Is that your best pick-up line? 😉"
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            appendMessage(randomResponse, 'ai');
-        }, 1000);
-    }
+		// 2. Show "typing..." indicator
+		const typingId = "typing-" + Date.now();
+		const messages = document.getElementById('messages');
+		const typingDiv = document.createElement('div');
+		typingDiv.id = typingId;
+		typingDiv.className = 'msg ai';
+		typingDiv.innerText = "Gemini is typing...";
+		messages.appendChild(typingDiv);
+
+		try {
+			// 3. Call Real AI (Hugging Face API)
+			const response = await fetch(
+				"https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill",
+				{
+					headers: { Authorization: "Bearer YOUR_API_KEY_HERE" },
+					method: "POST",
+					body: JSON.stringify({ inputs: text }),
+				}
+			);
+			
+			const result = await response.json();
+			
+			// 4. Remove typing indicator and show real response
+			document.getElementById(typingId).remove();
+			const aiText = result.generated_text || "I'm lost in thought... try again?";
+			appendMessage(aiText, 'ai');
+			
+		} catch (error) {
+			document.getElementById(typingId).innerText = "Connection error. :( ";
+			console.error(error);
+		}
+	}
 
     function appendMessage(text, side) {
         const container = document.getElementById('messages');
